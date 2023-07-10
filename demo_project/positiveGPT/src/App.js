@@ -44,25 +44,11 @@ function App() {
   const [responses_items_gpt, set_responses_gpt] = React.useState(''); // response from server
   const [responses_text_gpt, set_responses_text_gpt] = React.useState(''); // response text from gpt
 
-  const [responses_items_own, set_responses_own] = React.useState(''); // response from server
-  const [responses_text_own, set_responses_text_own] = React.useState(''); // response text from own server
-
-  const test_responses = ["1. Take a break and focus on self-care. Make sure to get enough rest, eat healthy meals, and exercise regularly.",
-    "2. Make time for activities that bring you joy. Whether it’s reading a book, listening to music, or going for a walk, find something that helps you relax and enjoy yourself.",
-    "3. Talk to someone. Reach out to a friend or family member and let them know how you’re feeling. Talking to"];
-
   const [userRatings, setUserRatings] = React.useState([
-    { id: 0, rating: 1 }, // own server response 1
-    { id: 1, rating: 1 }, // gpt response 1
-    { id: 2, rating: 1 }, // gpt response 2
-    { id: 3, rating: 1 }, // gpt response 3
+    { id: 0, rating: 1 }, // gpt response 1
+    { id: 1, rating: 1 }, // gpt response 2
+    { id: 2, rating: 1 }, // gpt response 3
   ]); // user ratings for each response
-
-  const test_responses_items = test_responses.map((response_single) =>
-    <li className='suggestion_card_container'>
-      <SuggestionCard text={response_single} />
-    </li>
-  );
 
   const handleFileUpload = (event) => {
     const SelectedFile = event.target.files[0];
@@ -95,7 +81,7 @@ function App() {
     setIsSubmitting(true);
     setIsLoading(true);
     event.preventDefault();
-    await fetch('https://positive-reframe-backend.herokuapp.com/', {
+    await fetch('http://localhost:3001', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -108,34 +94,22 @@ function App() {
       .then(response => response.json())
       .then(data => {
         console.log(data)
-        console.log("Own Server response is: ", data.response_from_own_server);
         console.log("GPT Server response is: ", data.response_from_gpt);
 
         const responses_gpt = data.response_from_gpt.split("\n");
-        const response_from_own_server = data.response_from_own_server.split("\n");
 
         const non_empty_responses_gpt = responses_gpt.filter((response_single) => response_single !== "");
-        const non_empty_responses_own = response_from_own_server.filter((response_single) => response_single !== "");
-
-        const responses_items_own = non_empty_responses_own.map((response_single, index) =>
+  
+        const responses_items_gpt = non_empty_responses_gpt.map((response_single, index) =>
         (<li className='suggestion_card_container'>
           <SuggestionCard text={response_single} id={index} handleRatingChange={handleRatingChange} />
         </li>)
         );
 
-        const responses_items_gpt = non_empty_responses_gpt.map((response_single, index) =>
-        (<li className='suggestion_card_container'>
-          <SuggestionCard text={response_single} id={index + 1} handleRatingChange={handleRatingChange} />
-        </li>)
-        );
-
         // set response text
-        set_responses_text_own(non_empty_responses_own);
         set_responses_text_gpt(non_empty_responses_gpt);
 
-
         // set response html elements
-        set_responses_own(responses_items_own);
         set_responses_gpt(responses_items_gpt);
 
         setIsLoading(false);
@@ -178,13 +152,14 @@ function App() {
     const current_ratings = userRatings.map((rating) => rating.rating);
     const uniqueRatings = [...new Set(current_ratings)];
     if (uniqueRatings.length !== current_ratings.length) {
+      console.log("user ratings length: ", current_ratings.length, "current ratings: ", current_ratings);
+      console.log("unique ratings length: ", uniqueRatings.length, "unique ratings: ", uniqueRatings);
       alert("Please make sure you have rated each response differently.");
       return;
     }
 
     await console.log("Posting feedback to database", userRatings[0].rating)
-    // console log responses text for own server and gpt
-    console.log("Own server responses: ", responses_text_own);
+    // console log responses text for and gpt
     console.log("GPT responses: ", responses_text_gpt);
 
     const { data, error } = await supabase
@@ -192,14 +167,12 @@ function App() {
       .insert([
         {
           original_message: message,
-          own_response_1_text: responses_text_own[0],
-          own_response_1_rating: userRatings[0].rating,
           gpt_response_1_text: responses_text_gpt[0],
-          gpt_response_1_rating: userRatings[1].rating,
+          gpt_response_1_rating: userRatings[0].rating,
           gpt_response_2_text: responses_text_gpt[1],
-          gpt_response_2_rating: userRatings[2].rating,
+          gpt_response_2_rating: userRatings[1].rating,
           gpt_response_3_text: responses_text_gpt[2],
-          gpt_response_3_rating: userRatings[3].rating,
+          gpt_response_3_rating: userRatings[2].rating,
         },
       ])
 
@@ -243,12 +216,6 @@ function App() {
     );
   };
 
-
-
-
-  // for the response, chop it down to a list of strings if they are separated by a dot character
-  // then display each string in a list
-  // for the message, display it in a textarea box
 
 
 
@@ -309,12 +276,6 @@ function App() {
                     Loading a positive spin... </p>) :
                     (
                       <div>
-                        {/* <p>Our Responses</p>
-                        <ul className='responses_items_contianer'>
-                          {responses_items_own}
-                        </ul>
-
-                        <p> GPT Responses</p> */}
                         <ul className='responses_items_contianer'>
                           {responses_items_gpt}
                         </ul>
